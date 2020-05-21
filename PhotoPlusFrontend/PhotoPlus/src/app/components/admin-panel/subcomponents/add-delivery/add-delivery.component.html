@@ -1,9 +1,10 @@
 <div class="container">
   <div class="selected-product mt-2 text-center">
     Selected product name: {{ (selectedProduct | async)?.name }}<br/>
-    <img src="{{(selectedProduct | async)?.imagesUrl[0]}}">
+    <img *ngIf="(selectedProduct|async)?.imagesUrl?.length > 0" src="{{(selectedProduct | async)?.imagesUrl[0]}}">
   </div>
   <mat-card class="mt-2">
+    <app-page-select [amountOfPages]="amountOfPages" (onPageSelect)="changePage($event)"></app-page-select>
     <span
       >Search by product name or code:&nbsp;<input
         class="w-100 my-1"
@@ -12,12 +13,13 @@
     /></span>
     <div class="row product-search justify-content-around">
       <mat-card
-        *ngFor="let product of filteredProducts"
+        *ngFor="let product of products"
         class="product col-3 text-center"
         (click)="selectProduct(product.value.code)"
       >
         <img
           class="product-photo mt-3"
+          *ngIf="(product|async)?.imagesUrl?.length > 0"
           src="{{ ((product | async)?.imagesUrl)[0] }}"
         /><br >
         {{ (product | async)?.name }}

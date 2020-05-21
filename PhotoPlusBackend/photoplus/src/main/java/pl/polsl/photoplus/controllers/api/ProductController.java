@@ -9,6 +9,7 @@ import pl.polsl.photoplus.model.dto.ProductModelDto;
 import pl.polsl.photoplus.security.services.PermissionEvaluatorService;
 import pl.polsl.photoplus.services.controllers.ProductService;
 
+import javax.validation.constraints.Size;
 import java.util.List;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
@@ -27,21 +28,21 @@ public class ProductController
         super(dtoService, "product", permissionEvaluatorService);
     }
 
-    @GetMapping(path = "/{page}", produces = {"application/json"}, params = "categoryCode")
+    @GetMapping(path = "/available/{page}", produces = {"application/json"}, params = "categoryCode")
     @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
-    public ResponseEntity<List<ProductModelDto>> getPageFromCategory(@PathVariable("page") final Integer page,
-                                                                    @RequestParam final String categoryCode)
+    public ResponseEntity<List<ProductModelDto>> getPageOfAvailableProductsFromCategory(@PathVariable("page") final Integer page,
+                                                                                        @RequestParam final String categoryCode)
     {
-        final List<ProductModelDto> dtos = this.dtoService.getProductsFromCategory(page, categoryCode);
+        final List<ProductModelDto> dtos = this.dtoService.getAvailableProductsFromCategory(page, categoryCode);
         addLinks(dtos);
         return new ResponseEntity<>(dtos, HttpStatus.OK);
     }
 
-    @GetMapping(path = "/page/count", produces = "application/json", params = "categoryCode")
+    @GetMapping(path = "/available/page/count", produces = "application/json", params = "categoryCode")
     @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
-    public ResponseEntity<ObjectNode> getAmountOfPages(@RequestParam final String categoryCode)
+    public ResponseEntity<ObjectNode> getAmountOfPagesOfAvailableProductsFromCategory(@RequestParam final String categoryCode)
     {
-        return new ResponseEntity<>(dtoService.getPageCountOfProductFromCategory(categoryCode), HttpStatus.OK);
+        return new ResponseEntity<>(dtoService.getPageCountOfAvailableProductsFromCategory(categoryCode), HttpStatus.OK);
     }
 
     @Override
@@ -49,7 +50,25 @@ public class ProductController
     @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
     public ResponseEntity<List<ProductModelDto>> getAll(@PathVariable("page") final Integer page)
     {
-        final List<ProductModelDto> dtos = dtoService.getPageFromAll(page, "name");
+        final List<ProductModelDto> dtos = dtoService.getPageFromAll(page);
+        addLinks(dtos);
+        return new ResponseEntity<>(dtos, HttpStatus.OK);
+    }
+
+    @GetMapping(path = "/all/count", produces = {"application/json"})
+    public ResponseEntity getAvailablePageCount()
+    {
+        return new ResponseEntity(dtoService.getAvailablePageCount(), HttpStatus.OK);
+    }
+
+    // Should change endpoint too to but its gonna break a lot of things
+    @GetMapping(path = "/all/{page}", produces = {"application/json"}, params = "sortedBy")
+    @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
+    public ResponseEntity<List<ProductModelDto>> getAvailableProductsPage(@PathVariable final Integer page,
+                                                                          @RequestParam final String sortedBy)
+    {
+        final List<ProductModelDto> dtos;
+        dtos = dtoService.getAvailableProductsPageFromAll(page, sortedBy);
         addLinks(dtos);
         return new ResponseEntity<>(dtos, HttpStatus.OK);
     }
@@ -63,17 +82,6 @@ public class ProductController
         return new ResponseEntity<>(dtos, HttpStatus.OK);
     }
 
-    @GetMapping(path = "/all/{page}", produces = {"application/json"}, params = "sortedBy")
-    @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
-    public ResponseEntity<List<ProductModelDto>> getAll(@PathVariable final Integer page,
-                                                               @RequestParam final String sortedBy)
-    {
-        final List<ProductModelDto> dtos;
-        dtos = dtoService.getPageFromAll(page, sortedBy);
-        addLinks(dtos);
-        return new ResponseEntity<>(dtos, HttpStatus.OK);
-    }
-
     @Override
     public void addLinks(final ProductModelDto dto)
     {
@@ -83,11 +91,49 @@ public class ProductController
         dto.getImages().forEach(imageCode -> dto.add(linkTo(methodOn(ImageController.class).getSingle(imageCode)).withRel(IMAGE_RELATION_NAME)));
     }
 
-    @GetMapping(path = {"/search"}, produces = {"application/json"}, params = "str")
+    @GetMapping(path = {"/search/{page}"}, produces = {"application/json"}, params = {"str", "sortedBy"})
     @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
-    public ResponseEntity searchByLogin(@RequestParam final String str)
+    public ResponseEntity searchByName(@PathVariable final Integer page,
+                                       @RequestParam @Size(min=3, message = "Too short text. Size should be greater than 2.")
+                                       final String str,
+                                       @RequestParam final String sortedBy)
     {
-        return new ResponseEntity(dtoService.getByNameContainingStr(str), HttpStatus.OK);
+        final List<ProductModelDto> dtos = dtoService.getByNameContainingStr(str, page, sortedBy);
+        addLinks(dtos);
+        return new ResponseEntity<>(dtos, HttpStatus.OK);
+    }
+
+
+    @GetMapping(path = {"/search/page/count"}, produces = {"application/json"}, params = "str")
+    @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
+    public ResponseEntity searchByNamePageCount(@RequestParam @Size(min=3, message = "Too short text. Size should be greater than 2.")
+                                                    final String str)
+    {
+        return new ResponseEntity<>(dtoService.getPageCountOfNameContainingStr(str), HttpStatus.OK);
+    }
+
+    @GetMapping(path = {"/search/all/{page}"}, produces = {"application/json"}, params = {"str", "sortedBy"})
+    @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
+    public ResponseEntity searchAllByName(@PathVariable final Integer page, final String str,
+                                          @RequestParam final String sortedBy)
+    {
+        final List<ProductModelDto> dtos = dtoService.getAllByNameContainingStr(str, page, sortedBy);
+        addLinks(dtos);
+        return new ResponseEntity<>(dtos, HttpStatus.OK);
+    }
+
+    @GetMapping(path = {"/search/all/page/count"}, produces = {"application/json"}, params = "str")
+    @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'all' )")
+    public ResponseEntity searchAllByNamePageCount(@RequestParam final String str)
+    {
+        return new ResponseEntity<>(dtoService.getPageCountOfAllByNameContainingStr(str), HttpStatus.OK);
+    }
+
+    @GetMapping(path = {"/avgPrice"}, produces = {"application/json"}, params = "code")
+    @PreAuthorize("@permissionEvaluatorService.hasPrivilege(authentication, this.authorizationPrefix, 'avgPrice' )")
+    public ResponseEntity getAvgPurchasePrice(@RequestParam final String code)
+    {
+        return new ResponseEntity<>(dtoService.getAveragePurchasePrice(code), HttpStatus.OK);
     }
 
 }

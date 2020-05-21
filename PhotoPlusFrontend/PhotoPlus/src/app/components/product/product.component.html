@@ -5,15 +5,15 @@
         <div class="column1 fadeIn second">
           <ngb-carousel id="product-carousel" wrap="true" [interval]="false"
             *ngIf="(product | async)?.imagesUrl?.length > 1; else noCarousel" #carousel>
-            <ng-template ngbSlide *ngFor="let image of (product | async)?.imagesUrl">
+            <ng-template ngbSlide *ngFor="let image of (product | async)?.imagesUrl; let i = index;">
               <div>
-                <img class="carouselImage" src="{{ image }}" />
+                <img routerLink="/imageDisplay/{{product.value.imageCodes[i]}}" class="carouselImage" src="{{ image }}" />
               </div>
             </ng-template>
           </ngb-carousel>
           <ng-template #noCarousel>
             <div *ngIf="(product | async)?.imagesUrl">
-              <img class="noCarouselImage" src="{{ (product | async)?.imagesUrl[0] }}" />
+              <img routerLink="/imageDisplay/{{product.value.imageCodes[0]}}" class="noCarouselImage" src="{{ (product | async)?.imagesUrl[0] }}" />
             </div>
           </ng-template>
         </div>
@@ -40,6 +40,10 @@
                 value="{{ (product | async)?.description }}"></textarea>
             </ng-template>
 
+            <div *ngIf="canEdit()">
+              <p class="description">Store quantity: {{ (product | async)?.storeQuantity }}</p>
+            </div>
+
             <div class="links" *ngIf="(product | async)?.dataLinks">
               <div *ngFor="let dataLink of (product | async)?.dataLinks | keyvalue">
                 <a href="{{ dataLink.value }}" class="description">{{ dataLink.key }}</a>
@@ -49,14 +53,14 @@
         </div>
         <div class="column3 fadeIn fourth">
           <div *ngIf="!isEditing; else editingPrice;">
-            <p id="product-price">${{ (product | async)?.price }}</p>
+            <p id="product-price">{{ (product | async)?.price | currency: '$' }}</p>
             <div *ngIf="(product | async)?.storeQuantity > 0; else notAvailable">
               <button (click)="addToCart(product.value)" class="btn btn-success" href="#">
                 Add to cart
               </button>
               <br />
               <br />
-              <button class="btn btn-success" href="#">
+              <button (click)="buy(product.value)" class="btn btn-success" href="#" id="buy-link">
                 Buy now
               </button>
             </div>
@@ -67,9 +71,10 @@
             </ng-template>
           </div>
           <ng-template #editingPrice>
-            <input #productPrice type="number" min="0.01" class="price-textarea" id="product-price" step="0.01"
+            <input #productPrice type="number" min="0.01" class="price-textarea" id="product-price" step="any"
               value="{{ (product | async)?.price }}">
-          </ng-template>
+            <p class="product-avgprice">Av. purchase: {{ (avgPrice | async) | currency: '$' }}</p>
+            </ng-template>
           <div *ngIf="canEdit()">
             <br />
             <div *ngIf="!isEditing">
@@ -136,4 +141,57 @@
       </div>
     </div>
   </div>
+</div>
+<!-- //! RATINGI START -->
+<div *ngIf="!auth.isModerator">
+  <div class="stars">
+    <div class="rate">
+      <input class="all-stars" (change)="FieldsChange($event)" type="radio" id="star5" name="rate" value="5" />
+      <label  for="star5" title="5 stars"></label>
+      <input class="all-stars" (change)="FieldsChange($event)" type="radio" id="star4" name="rate" value="4" />
+      <label for="star4" title="4 stars"></label>
+      <input class="all-stars" (change)="FieldsChange($event)" type="radio" id="star3" name="rate" value="3" />
+      <label for="star3" title="3 stars"></label>
+      <input class="all-stars" (change)="FieldsChange($event)" type="radio" id="star2" name="rate" value="2" />
+      <label for="star2" title="2 stars"></label>
+      <input class="all-stars" (change)="FieldsChange($event)" type="radio" id="star1" name="rate" value="1" />
+      <label for="star1" title="1 star"></label>
+    </div>
+  </div>
+  <div class="area">
+    <textarea #rateContent type="string" maxlength="255" id="area" rows="5" cols="60" value=""></textarea>
+  </div>
+  <div class="areaBtn mb-2">
+    <button (click)="rate()" class="ratebtn btn btn-success" href="#" id="buy-link">Rate</button>
+  </div>
+</div>
+<div *ngIf="ratings?.length > 0">
+  <app-page-select (onPageSelect)="changePage($event)" [amountOfPages]="amountOfPages">
+  </app-page-select>
+  <mat-form-field class="selectBox">
+    <mat-label class="text-muted">Sorting option</mat-label>
+    <mat-select class="dropdown-option" [(value)]="sort" (selectionChange)="onSortingChange()">
+      <mat-option class="select" value="dateAsc">Date ↑</mat-option>
+      <mat-option class="select" value="dateDesc">Date ↓</mat-option>
+      <mat-option class="select" value="rateAsc">Rate ↑</mat-option>
+      <mat-option class="select" value="rateDesc">Rate ↓</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-card class="container rate-bg-color">
+    <mat-card class="single-rate p-1" *ngFor="let rate of ratings">
+      <div class="d-flex">
+        <mat-card class="user-profile">
+          <!-- Could make user name breakable -->
+          {{(rate | async)?.userLogin || '' }}
+        </mat-card>
+        <div class="user-rate">
+            Rate:&nbsp;{{(rate | async)?.rate}}&nbsp;/&nbsp;5
+        </div>
+      </div>
+      <div class="user-rate-content m-1">
+        {{(rate | async)?.content}}
+      </div>
+    </mat-card>
+  </mat-card>
+  <br>
 </div>

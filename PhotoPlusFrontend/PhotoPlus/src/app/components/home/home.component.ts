@@ -1,10 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ProductService } from '../../services/product/product.service';
-import { CartService } from 'src/app/services/cart/cart.service';
 import { Product } from '../../models/product/product';
-import { SuccessModalComponent } from '../success-modal/success-modal.component';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { environment } from '../../../environments/environment';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -13,21 +11,21 @@ import { environment } from '../../../environments/environment';
 })
 export class HomeComponent implements OnInit {
 
-  products: Product[];
+  products: BehaviorSubject<Product>[];
 
-  constructor(private productService: ProductService, private cartService: CartService, private modalService: NgbModal) { }
+  constructor(private productService: ProductService) { }
 
   ngOnInit(): void {
-    this.productService.getAllFromLink(environment.hostAddress + 'product/top').subscribe((data: Product[]) => {
-      this.products = data;
-      this.products.forEach(element => { this.productService.getDataFromLinks(element); });
-    });
+    this.loadProducts();
   }
 
-  addToCart(product: Product) {
-    this.cartService.addToCart(product);
-    const modalRef = this.modalService.open(SuccessModalComponent);
-    modalRef.componentInstance.message = 'Please go to checkout to place an order.';
-    modalRef.componentInstance.title = 'Added ' + product.name + ' to card.';
+  loadProducts() {
+    this.products = new Array<BehaviorSubject<Product>>();
+    this.productService.getAllFromLink(environment.hostAddress + 'product/top').subscribe(data => {
+      for (const product of data) {
+        this.productService.getDataFromLinks(product);
+        this.products.push(new BehaviorSubject(product));
+      }
+    });
   }
 }

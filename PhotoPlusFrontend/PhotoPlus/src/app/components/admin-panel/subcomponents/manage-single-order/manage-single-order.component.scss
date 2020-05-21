@@ -1,0 +1,42 @@
+
+$single-order-bg-color: #424242;
+
+.order-details{
+  background-color: $single-order-bg-color;
+}
+
+.user-details{
+  background-color: lighten($single-order-bg-color, 5%);
+}
+
+.address-details{
+  background-color: lighten($single-order-bg-color, 10%);
+}
+
+.products-details{
+  background-color: lighten($single-order-bg-color, 15%);
+}
+
+.single-product{
+  background-color: lighten($single-order-bg-color, 20%);
+}
+
+.product-image{
+  max-height: fit-content;
+  cursor: pointer;
+  flex: 0 0 100px;
+}
+
+.product-image > img {
+  max-width: 75px;
+  max-height: 75px;
+}
+
+.product-desc{
+  flex:1 0 0;
+}
+
+.product-price{
+  flex:0 0 100px;
+  overflow: auto;
+}
